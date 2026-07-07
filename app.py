@@ -100,13 +100,13 @@ user_role = st.sidebar.selectbox(
 )
 
 st.sidebar.markdown("---")
-
-st.sidebar.info(f" **Current Technique:** {prompt_type}")
-st.sidebar.info(f" **Difficulty:** {difficulty}")
+st.sidebar.info(f" Role: {user_role}")
+st.sidebar.info(f" Prompt Technique: {prompt_type}")
+st.sidebar.info(f" Difficulty: {difficulty}")
 
 st.sidebar.markdown("---")
 
-st.sidebar.markdown("### 💡 Suggested Questions")
+st.sidebar.markdown("### Suggested Questions")
 
 st.sidebar.markdown("""
 - What is Machine Learning?
@@ -118,12 +118,43 @@ st.sidebar.markdown("""
 
 st.sidebar.markdown("---")
 
-if st.sidebar.button(" Clear Chat"):
-    st.session_state.messages = []
-    st.rerun()
 # ---------------- SESSION ---------------- #
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+# ---------------- CLEAR CHAT ---------------- #
+
+if st.sidebar.button("Clear Chat"):
+    st.session_state.messages = []
+    st.session_state.chat_history = []
+    st.rerun()
+
+# ---------------- CHAT HISTORY ---------------- #
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("Chat History")
+
+if len(st.session_state.chat_history) == 0:
+    st.sidebar.write("No previous chats.")
+
+else:
+    for i, chat in enumerate(reversed(st.session_state.chat_history), 1):
+
+        with st.sidebar.expander(f"💬 Chat {i}"):
+
+            st.write(f"**Role:** {chat['role']}")
+            st.write(f"**Technique:** {chat['technique']}")
+            st.write(f"**Difficulty:** {chat['difficulty']}")
+
+            st.write("**Question:**")
+            st.write(chat["question"])
+
+            st.write("**Answer:**")
+            st.write(chat["answer"])
     
 # ---------------- ROLE PROMPT ---------------- #
 
@@ -305,7 +336,7 @@ for msg in st.session_state.messages:
 
 # ---------------- USER INPUT ---------------- #
 
-user_input = st.chat_input(" Ask a Machine Learning question...")
+user_input = st.chat_input("Ask a Machine Learning question...")
 
 if user_input:
 
@@ -318,8 +349,7 @@ if user_input:
         st.markdown(user_input)
 
     try:
-
-        with st.spinner("ML Tutor is thinking..."):
+        with st.spinner(" ML Tutor is thinking..."):
 
             response = client.chat.completions.create(
                 model="meta-llama/llama-3.1-8b-instruct",
@@ -333,8 +363,17 @@ if user_input:
 
             answer = response.choices[0].message.content
 
+            # Save chat history
+            st.session_state.chat_history.append({
+                "role": user_role,
+                "technique": prompt_type,
+                "difficulty": difficulty,
+                "question": user_input,
+                "answer": answer
+            })
+
     except Exception as e:
-        answer = f"Error: {str(e)}"
+        answer = f"⚠️ Error: {str(e)}"
 
     # Store assistant response
     st.session_state.messages.append(
@@ -343,7 +382,6 @@ if user_input:
 
     with st.chat_message("assistant"):
         st.markdown(answer)
-
 # ---------------- FOOTER ---------------- #
 
 st.markdown("---")
